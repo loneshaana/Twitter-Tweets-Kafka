@@ -1,6 +1,5 @@
-package com.github.loneshaan.kafka.tutorial2;
+package tutorial2;
 
-import com.github.loneshaan.kafka.tutorial1.ProducerDemo;
 import com.google.common.collect.Lists;
 import com.twitter.hbc.ClientBuilder;
 import com.twitter.hbc.core.Client;
@@ -11,7 +10,9 @@ import com.twitter.hbc.core.endpoint.StatusesFilterEndpoint;
 import com.twitter.hbc.core.processor.StringDelimitedProcessor;
 import com.twitter.hbc.httpclient.auth.Authentication;
 import com.twitter.hbc.httpclient.auth.OAuth1;
-import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +35,7 @@ public class TwitterProducer {
     private String secret = null;
 
     public TwitterProducer() {
-        try (InputStream input = new FileInputStream("src/main/resources/application.properties")) {
+        try (InputStream input = new FileInputStream("KafkaProducerTwitter/src/main/resources/application.properties")) {
             Properties prop = new Properties();
             prop.load(input);
             consumerKey = prop.getProperty("twitter.consumer_key");
@@ -77,7 +78,6 @@ public class TwitterProducer {
 
             if (msg != null) {
                 logger.info(msg);
-                // @TODO create a batch and compress that batch then send it to the producer
                 producer.send(new ProducerRecord<>("twitter_tweets", null, msg), (recordMetadata, e) -> {
                     if (e != null) {
                         logger.error("Something bad happened ", e);

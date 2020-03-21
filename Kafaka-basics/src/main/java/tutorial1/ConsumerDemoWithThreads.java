@@ -1,4 +1,4 @@
-package com.github.loneshaan.kafka.tutorial1;
+package tutorial1;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
