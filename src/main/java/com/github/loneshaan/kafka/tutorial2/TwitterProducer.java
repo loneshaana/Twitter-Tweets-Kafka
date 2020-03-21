@@ -1,5 +1,6 @@
 package com.github.loneshaan.kafka.tutorial2;
 
+import com.github.loneshaan.kafka.tutorial1.ProducerDemo;
 import com.google.common.collect.Lists;
 import com.twitter.hbc.ClientBuilder;
 import com.twitter.hbc.core.Client;
@@ -40,7 +41,6 @@ public class TwitterProducer {
             consumerSecret = prop.getProperty("twitter.consumer_secret");
             token = prop.getProperty("twitter.token");
             secret = prop.getProperty("twitter.secret");
-            logger.info("Consumer Key ", consumerKey);
         } catch (IOException e) {
             e.printStackTrace();
             logger.error("Error while Reading Twitter Properties");
@@ -120,8 +120,13 @@ public class TwitterProducer {
         properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
+        // create the safe producer
+        properties.setProperty(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,"true");
+        properties.setProperty(ProducerConfig.ACKS_CONFIG,"all");
+        properties.setProperty(ProducerConfig.RETRIES_CONFIG , Integer.toString(Integer.MAX_VALUE));
+        properties.setProperty(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION , "5");
+
         // Create Producer
         return new KafkaProducer<>(properties);
-
     }
 }
