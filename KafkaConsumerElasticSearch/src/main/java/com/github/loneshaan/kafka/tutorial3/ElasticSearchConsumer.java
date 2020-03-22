@@ -101,7 +101,7 @@ public class ElasticSearchConsumer {
             ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
             Integer recordCount = records.count();
             BulkRequest bulkRequest = new BulkRequest();
-
+            logger.info("[ Received "+recordCount+" Records ]");
             for (ConsumerRecord<String, String> record : records) {
                 // Kafka Generic Id
                 // String id = record.topic()+"_"+record.partition()+"_"+record.offset(); //  this is when u will not find any possible id
@@ -117,6 +117,7 @@ public class ElasticSearchConsumer {
             }
             if (recordCount > 0) {
                 BulkResponse bulkResponse = client.bulk(bulkRequest, RequestOptions.DEFAULT);
+                logger.info("Committing Offset !");
                 consumer.commitSync();
                 try {
                     Thread.sleep(1000);

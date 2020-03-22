@@ -96,7 +96,7 @@ public class TwitterProducer {
         //List<Long> followings = Lists.newArrayList(1234L , 566788L);
         //filterEndpoint.followings(followings);
 
-        List<String> terms = Lists.newArrayList("Coronavirus","Politics","USA");
+        List<String> terms = Lists.newArrayList("Covid19");
         filterEndpoint.trackTerms(terms);
 
         Authentication auth = new OAuth1(consumerKey, consumerSecret, token, secret);
