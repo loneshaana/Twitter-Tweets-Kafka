@@ -12,6 +12,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.RequestOptions;
@@ -70,9 +72,11 @@ public class ElasticSearchConsumer {
         properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupIp);
+        properties.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10");
 
         //"earliest/latest/none"
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
 
         // Create the consumer
         KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties);
@@ -80,7 +84,7 @@ public class ElasticSearchConsumer {
         return consumer;
     }
 
-    private static String extractIdFromTweet(String tweetJson){
+    private static String extractIdFromTweet(String tweetJson) {
         JsonObject jsonObject = (JsonObject) JsonParser.parseString(tweetJson);
         return jsonObject.get("id_str").getAsString();
     }
@@ -95,16 +99,25 @@ public class ElasticSearchConsumer {
         // poll the new data
         while (true) {
             ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+            Integer recordCount = records.count();
+            BulkRequest bulkRequest = new BulkRequest();
+
             for (ConsumerRecord<String, String> record : records) {
                 // Kafka Generic Id
                 // String id = record.topic()+"_"+record.partition()+"_"+record.offset(); //  this is when u will not find any possible id
 
                 // twitter feed specific id
-                String tweetId = extractIdFromTweet(record.value()); // Used to make it idempotent
-                IndexRequest indexRequest = new IndexRequest("twitter", "tweets", tweetId).source(record.value(), XContentType.JSON);
-                IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
-                String id = indexResponse.getId();
-                logger.info("[ Elastic Search Id : " + id);
+                try {
+                    String tweetId = extractIdFromTweet(record.value()); // Used to make it idempotent
+                    IndexRequest indexRequest = new IndexRequest("twitter", "tweets", tweetId).source(record.value(), XContentType.JSON);
+                    bulkRequest.add(indexRequest);
+                } catch (NullPointerException e) {
+                    logger.error("Skipping the bad data " + record.value());
+                }
+            }
+            if (recordCount > 0) {
+                BulkResponse bulkResponse = client.bulk(bulkRequest, RequestOptions.DEFAULT);
+                consumer.commitSync();
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
