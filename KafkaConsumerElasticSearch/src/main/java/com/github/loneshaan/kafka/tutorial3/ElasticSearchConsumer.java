@@ -1,5 +1,7 @@
 package com.github.loneshaan.kafka.tutorial3;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -31,17 +33,17 @@ public class ElasticSearchConsumer {
 
     private static String hostname = null;
     private static String username = null;
-    private static  String password = null;
+    private static String password = null;
 
-    public ElasticSearchConsumer(){
-        try{
+    public ElasticSearchConsumer() {
+        try {
             Properties prop = new Properties();
             InputStream input = new FileInputStream("KafkaConsumerElasticSearch/src/main/resources/application.properties");
             prop.load(input);
             hostname = prop.getProperty("elasticsearch.hostname");
             username = prop.getProperty("elasticsearch.username");
             password = prop.getProperty("elasticsearch.password");
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -73,9 +75,14 @@ public class ElasticSearchConsumer {
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
         // Create the consumer
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(properties);
+        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties);
         consumer.subscribe(Arrays.asList(topic));
         return consumer;
+    }
+
+    private static String extractIdFromTweet(String tweetJson){
+        JsonObject jsonObject = (JsonObject) JsonParser.parseString(tweetJson);
+        return jsonObject.get("id_str").getAsString();
     }
 
     public static void main(String[] args) throws IOException {
@@ -84,18 +91,23 @@ public class ElasticSearchConsumer {
         RestHighLevelClient client = createClient();
 
         KafkaConsumer<String, String> consumer = createConsumer("twitter_tweets");
+
         // poll the new data
-        while (true){
-            ConsumerRecords<String,String> records =  consumer.poll(Duration.ofMillis(100));
-            for(ConsumerRecord<String,String> record : records){
-                record.value();
-                IndexRequest indexRequest = new IndexRequest("twitter", "tweets").source(record.value(), XContentType.JSON);
+        while (true) {
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+            for (ConsumerRecord<String, String> record : records) {
+                // Kafka Generic Id
+                // String id = record.topic()+"_"+record.partition()+"_"+record.offset(); //  this is when u will not find any possible id
+
+                // twitter feed specific id
+                String tweetId = extractIdFromTweet(record.value()); // Used to make it idempotent
+                IndexRequest indexRequest = new IndexRequest("twitter", "tweets", tweetId).source(record.value(), XContentType.JSON);
                 IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
                 String id = indexResponse.getId();
-                logger.info("[ Elastic Search Id : "+id);
+                logger.info("[ Elastic Search Id : " + id);
                 try {
                     Thread.sleep(1000);
-                }catch (InterruptedException e){
+                } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
