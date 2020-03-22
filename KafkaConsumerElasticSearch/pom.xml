@@ -9,13 +9,12 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>KafkaProducerTwitter</artifactId>
-
+    <artifactId>KafkaConsumerElasticSearch</artifactId>
     <dependencies>
         <dependency>
-            <groupId>com.twitter</groupId>
-            <artifactId>hbc-core</artifactId> <!-- or hbc-twitter4j -->
-            <version>2.2.0</version> <!-- or whatever the latest version is -->
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-high-level-client</artifactId>
+            <version>7.6.0</version>
         </dependency>
 
         <dependency>

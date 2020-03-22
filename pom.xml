@@ -23,5 +23,6 @@
     <modules>
         <module>Kafaka-basics</module>
         <module>KafkaProducerTwitter</module>
+        <module>KafkaConsumerElasticSearch</module>
     </modules>
 </project>
